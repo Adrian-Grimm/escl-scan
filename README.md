@@ -5,7 +5,8 @@ A little Python3 script for scanning via the _eSCL_ protocol. Supported features
 - Multiple resolutions
 - Multiple paper sizes
 
-# Updated to be a better compatible with Brother ADS-4700W and may others
+# Updated 
+To be a better compatible with Brother ADS-4700W and may others
 
 # Usage
 Invoke the script like this to see all possible options:
@@ -17,7 +18,7 @@ python3 escl-scan.py -h
 
 ```bash
 python3 -m pip install lxml
-python3 -m pip install requests etree
+python3 -m pip install requests
 ````
 
 # Hint
@@ -29,6 +30,8 @@ python3 ~/<THE-PATH>/escl-scan.py -s a4 "$@" http://192.168.1.8
 ```
 Invoking this helper script without any arguments triggers scanning of size A4 in color with the highest available resolution and puts the resulting JPG into the current directory.
 Invoking it with just `-t pdf` does the same for a PDF file.
+
+A quite good eSCL documentation can be found here: https://mopria.org/MopriaeSCLSpecDownload.php
 
 # Background
 Using _hplip-3.19.3_ (and some older versions) I was only able to **print** on the _HP LaserJet MFP M28w_, but all attempts to **scan** (via `hp-scan` and `xsane` over USB and WiFi) resulted in `SANE: Error during device I/O (code=9)`. Even though the M28w is supposed to be fully supported on linux.

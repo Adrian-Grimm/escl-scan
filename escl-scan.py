@@ -50,6 +50,8 @@ SCAN_REQUEST = """<?xml version="1.0" encoding="UTF-8"?>
 </scan:ScanSettings>
 """.strip()
 
+# Option missing for: <pwg:InputSource> =
+# Platen: a.k.a. glass flat bed o Feeder: a.k.a. ADF – Automatic Document Feeder o scan:Camera: object with depth scanning
 
 def main(args):
     # logger
@@ -87,7 +89,6 @@ def main(args):
     makeAndModel = first(tree.xpath("//pwg:MakeAndModel/text()", namespaces={"pwg": NS_PWG}))
     serialNumber = first(tree.xpath("//pwg:SerialNumber/text()", namespaces={"pwg": NS_PWG}))
     adminUri = first(tree.xpath("//scan:AdminURI/text()", namespaces={"scan": NS_SCAN}))
-    inputsource = tree.xpath("//pwg:InputSource/text()", namespaces={"pwg": NS_PWG})
     formats = tree.xpath("//pwg:DocumentFormat/text()", namespaces={"pwg": NS_PWG})
     colorModes = tree.xpath("//scan:ColorMode/text()", namespaces={"scan": NS_SCAN})
     xResolutions = tree.xpath("//scan:XResolution/text()", namespaces={"scan": NS_SCAN})
@@ -112,7 +113,6 @@ def main(args):
         print("Serial number: %s" % serialNumber)
         print("Scanner URL:   %s" % args.url)
         print("Admin URL:     %s" % adminUri)
-        print("InputSource:       %s" % ", ".join(inputsource))
         print("Formats:       %s" % ", ".join(formats))
         print("Color Modes:   %s" % ", ".join(colorModes))
         print("X-Resolutions: %s" % ", ".join(xResolutions))
