@@ -20,15 +20,18 @@ import time
 from io import StringIO
 from lxml import etree
 from urllib.parse import urljoin
+from urllib3.exceptions import InsecureRequestWarning
+
+# Suppress only the single warning from urllib3 needed.
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 DEF_NAME = "scan"
 SIZES = {"a4": (2480, 3508), "a5": (1748, 2480), "b5": (2079, 2953), "us": (2550, 3300)}  # approx. real widths and heights (in mm) times 11.81
 MAX_POLL = 50
 NS_SCAN = "http://schemas.hp.com/imaging/escl/2011/05/03"
 NS_PWG = "http://www.pwg.org/schemas/2010/12/sm"
-SCAN_REQUEST = """
-<?xml version="1.0" encoding="UTF-8"?>
-<scan:ScanSettings xmlns:pwg="__NS_PWG__" xmlns:scan="__NS_SCAN__">
+SCAN_REQUEST = """<?xml version="1.0" encoding="UTF-8"?>
+<scan:ScanSettings xmlns:pwg="http://www.pwg.org/schemas/2010/12/sm" xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03">
   <pwg:Version>__VERSION__</pwg:Version>
   <pwg:ScanRegions>
     <pwg:ScanRegion>
@@ -39,7 +42,7 @@ SCAN_REQUEST = """
       <pwg:ContentRegionUnits>escl:ThreeHundredthsOfInches</pwg:ContentRegionUnits>
     </pwg:ScanRegion>
   </pwg:ScanRegions>
-  <pwg:InputSource>Platen</pwg:InputSource>
+  <pwg:InputSource>Feeder</pwg:InputSource>
   <pwg:DocumentFormat>__FORMAT__</pwg:DocumentFormat>
   <scan:ColorMode>__COLORMODE__</scan:ColorMode>
   <scan:XResolution>__RESOLUTION__</scan:XResolution>
@@ -74,7 +77,7 @@ def main(args):
     # query capabilities
     capUrl = urljoin(args.url, "eSCL/ScannerCapabilities")
     log.debug("Querying scanner capabilities: %s", capUrl)
-    resp = http.get(capUrl)
+    resp = http.get(capUrl, verify=False)
     resp.raise_for_status()
     tree = etree.fromstring(resp.content)
     if args.very_verbose:
@@ -84,6 +87,7 @@ def main(args):
     makeAndModel = first(tree.xpath("//pwg:MakeAndModel/text()", namespaces={"pwg": NS_PWG}))
     serialNumber = first(tree.xpath("//pwg:SerialNumber/text()", namespaces={"pwg": NS_PWG}))
     adminUri = first(tree.xpath("//scan:AdminURI/text()", namespaces={"scan": NS_SCAN}))
+    inputsource = tree.xpath("//pwg:InputSource/text()", namespaces={"pwg": NS_PWG})
     formats = tree.xpath("//pwg:DocumentFormat/text()", namespaces={"pwg": NS_PWG})
     colorModes = tree.xpath("//scan:ColorMode/text()", namespaces={"scan": NS_SCAN})
     xResolutions = tree.xpath("//scan:XResolution/text()", namespaces={"scan": NS_SCAN})
@@ -94,7 +98,7 @@ def main(args):
     # query status
     statusUrl = urljoin(args.url, "eSCL/ScannerStatus")
     log.debug("Querying scanner status: %s", statusUrl)
-    resp = http.get(statusUrl)
+    resp = http.get(statusUrl, verify=False)
     resp.raise_for_status()
     tree = etree.fromstring(resp.content)
     if args.very_verbose:
@@ -108,6 +112,7 @@ def main(args):
         print("Serial number: %s" % serialNumber)
         print("Scanner URL:   %s" % args.url)
         print("Admin URL:     %s" % adminUri)
+        print("InputSource:       %s" % ", ".join(inputsource))
         print("Formats:       %s" % ", ".join(formats))
         print("Color Modes:   %s" % ", ".join(colorModes))
         print("X-Resolutions: %s" % ", ".join(xResolutions))
@@ -181,17 +186,20 @@ def main(args):
         log.debug("Sending scan request to %s: %s", startUrl, startReq)
     else:
         log.debug("Sending scan request: %s", startUrl)
-    resp = http.post(startUrl, startReq, headers={"Content-Type": "text/xml"})
+        log.debug("Sending scan request payload: %s", startReq)
+    resp = http.post(startUrl, startReq, headers={"Content-Type": "text/xml"}, verify=False)
     resp.raise_for_status()
     resultUrl = urljoin(resp.headers["Location"] + "/", "NextDocument")  # status code is 201 so Requests won't follow Location
+    if resultUrl.startswith("/"): #Apparently, Brother scanners return a relative URL to the scan job instead of an absolute one
+        resultUrl = urljoin(args.url, resultUrl)
     log.debug("Result is at %s", resultUrl)
 
     # poll for the result every two seconds, give up after 10 failures
     counter = 1
     while True:
-        time.sleep(2)
+        time.sleep(10)
         log.debug("Polling [%d]: %s", counter, resultUrl)
-        resp = http.get(resultUrl)
+        resp = http.get(resultUrl, verify=False)
         if resp.status_code == 200:
             log.debug("Received result")
             break

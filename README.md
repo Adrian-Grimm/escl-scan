@@ -5,11 +5,20 @@ A little Python3 script for scanning via the _eSCL_ protocol. Supported features
 - Multiple resolutions
 - Multiple paper sizes
 
+# Updated to be a better compatible with Brother ADS-4700W and may others
+
 # Usage
 Invoke the script like this to see all possible options:
-```
+```bash
 python3 escl-scan.py -h
 ```
+
+# Required to run
+
+```bash
+python3 -m pip install lxml
+python3 -m pip install requests etree
+````
 
 # Hint
 Since the scanner's URL isn't likely to change, you can hard-code it in a helper script for convenience. The same is true for default values of other options.
